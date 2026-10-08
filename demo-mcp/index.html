@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Streamlit + FastMCP + Qwen2.5 GGUF | Demo Dinámico GitHub</title>
+  <style>
+    :root {
+      --bg-main: #0e1117;
+      --bg-secondary: #262730;
+      --bg-card: #1e222a;
+      --border-color: #30363d;
+      --text-main: #fafafa;
+      --text-muted: #8b949e;
+      --primary-color: #ff4b4b;
+      --primary-hover: #ff2b2b;
+      --accent-blue: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-orange: #d29922;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* GitHub Banner */
+    .github-topbar {
+      background: #161b22;
+      border-bottom: 1px solid var(--border-color);
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .github-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #21262d;
+      border: 1px solid var(--border-color);
+      padding: 3px 10px;
+      border-radius: 20px;
+      color: #c9d1d9;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent-green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-green);
+    }
+
+    /* Layout */
+    .app-container {
+      display: flex;
+      min-height: calc(100vh - 42px);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 310px;
+      background-color: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      padding: 20px 16px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-main);
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .select-box, .slider {
+      width: 100%;
+      background: #0e1117;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+    .slider-val {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-blue);
+      float: right;
+    }
+    .status-card {
+      background: rgba(63, 185, 80, 0.1);
+      border: 1px solid rgba(63, 185, 80, 0.3);
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .tool-tag {
+      display: inline-block;
+      background: #30363d;
+      color: #e6edf3;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin: 2px 0;
+    }
+
+    /* Main Area */
+    .main-content {
+      flex: 1;
+      padding: 24px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Streamlit Title */
+    .streamlit-header {
+      margin-bottom: 24px;
+    }
+    .streamlit-header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .streamlit-caption {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Metric Cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .metric-card .title {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .metric-card .value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .metric-card .delta {
+      font-size: 11px;
+      color: var(--accent-green);
+      font-weight: 500;
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+    }
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    /* Scenarios Quick Bar */
+    .scenarios-box {
+      background: #161b22;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+    }
+    .scenarios-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .scenarios-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .quick-chip {
+      background: #21262d;
+      border: 1px solid var(--border-color);
+      color: #c9d1d9;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .quick-chip:hover {
+      background: #30363d;
+      border-color: var(--accent-blue);
+      color: #fff;
+    }
+
+    /* Chat Area */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+      min-height: 260px;
+    }
+    .chat-msg {
+      display: flex;
+      gap: 12px;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .chat-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .avatar-user { background: #1f6feb; }
+    .avatar-bot { background: var(--primary-color); }
+    .chat-bubble {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 14px;
+    }
+    .chat-bubble-user {
+      background: #161b22;
+      border-color: #388bfd55;
+    }
+
+    /* Tool Call Box */
+    .tool-box {
+      background: #11141a;
+      border: 1px solid #30363d;
+      border-left: 4px solid var(--accent-blue);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin: 10px 0;
+      font-size: 12px;
+    }
+    .tool-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .mcp-pill {
+      background: #238636;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .tool-code {
+      font-family: var(--font-mono);
+      color: #79c0ff;
+      background: #0d1117;
+      padding: 6px 8px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 4px 0;
+      white-space: pre-wrap;
+    }
+    .sql-code {
+      font-family: var(--font-mono);
+      color: #7ee787;
+      background: #0d1117;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin: 4px 0;
+      font-size: 11px;
+    }
+
+    /* Input Bar */
+    .input-box {
+      display: flex;
+      gap: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+    .input-box input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 14px;
+      outline: none;
+    }
+    .btn-send {
+      background: var(--primary-color);
+      border: none;
+      color: white;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-send:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Table Styles */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .table-header {
+      padding: 12px 16px;
+      background: #161b22;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      background: #161b22;
+      color: var(--text-muted);
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-color);
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #21262d;
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .badge-stock {
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .stock-ok { background: rgba(63, 185, 80, 0.2); color: #7ee787; }
+    .stock-low { background: rgba(210, 153, 34, 0.2); color: #f2cc60; }
+    .stock-alert { background: rgba(248, 81, 73, 0.2); color: #ff7b72; }
+
+    /* Code & Logs */
+    .terminal-box {
+      background: #0d1117;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #c9d1d9;
+      line-height: 1.6;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .log-line { margin-bottom: 4px; }
+    .log-green { color: #7ee787; }
+    .log-blue { color: #79c0ff; }
+    .log-yellow { color: #f2cc60; }
+
+    /* Loading Spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Responsive */
+    @media (max-width: 800px) {
+      .app-container { flex-direction: column; }
+      .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); }
+      .main-content { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar GitHub Header -->
+  <header class="github-topbar">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="https://github.com" target="_blank" class="github-badge">
+        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+        </svg>
+        <span>GitHub Repo Demo</span>
+      </a>
+      <span style="color:var(--text-muted); font-size:12px;">Demo Interactivo Standalone: Streamlit + FastMCP + Qwen2.5 GGUF</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="pulse-dot"></span>
+      <span style="font-size:12px; color:var(--accent-green); font-weight:600;">FastMCP Live Server</span>
+      <button onclick="resetDemoData()" style="background:#21262d; border:1px solid var(--border-color); color:#c9d1d9; padding:3px 10px; border-radius:4px; font-size:11px; cursor:pointer; margin-left:8px;">🔄 Reiniciar Datos</button>
+    </div>
+  </header>
+
+  <div class="app-container">
+
+    <!-- Sidebar Streamlit -->
+    <aside class="sidebar">
+      <div class="sidebar-title">
+        <span>⚙️ Configuración Agente</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Modelo LLM Local:</label>
+        <select id="model-select" class="select-box">
+          <option selected>Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf</option>
+          <option>Llama-3.1-8B-Instruct-Q4_K_M.gguf</option>
+          <option>DeepSeek-R1-Distill-Qwen-7B.gguf</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          Temperatura:
+          <span id="temp-val" class="slider-val">0.2</span>
+        </label>
+        <input type="range" min="0" max="1" step="0.05" value="0.2" class="slider" oninput="document.getElementById('temp-val').innerText = this.value">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          Tokens Máximos:
+          <span id="tokens-val" class="slider-val">512</span>
+        </label>
+        <input type="range" min="128" max="2048" step="64" value="512" class="slider" oninput="document.getElementById('tokens-val').innerText = this.value">
+      </div>
+
+      <hr style="border:none; border-top:1px solid var(--border-color);">
+
+      <div class="status-card">
+        <div style="display:flex; align-items:center; gap:6px; font-weight:700; color:#7ee787; margin-bottom:4px;">
+          <span class="pulse-dot"></span> Servidor FastMCP Conectado
+        </div>
+        <div style="color:var(--text-muted); font-size:11px;">Transporte: stdio / JSON-RPC 2.0</div>
+        <div style="margin-top:8px;">
+          <div style="font-size:11px; font-weight:600; margin-bottom:4px;">Herramientas Expuestas:</div>
+          <span class="tool-tag">consultar_stock</span>
+          <span class="tool-tag">calcular_ingresos_totales</span>
+          <span class="tool-tag">registrar_venta</span>
+          <span class="tool-tag">productos_bajo_stock</span>
+        </div>
+      </div>
+
+      <div style="background:#161b22; border:1px solid var(--border-color); padding:10px; border-radius:6px; font-size:11px; color:var(--text-muted);">
+        <strong style="color:#c9d1d9;">Base de Datos:</strong> <code style="color:#79c0ff;">inventario.db</code> (SQLite3)<br>
+        <strong style="color:#c9d1d9;">Motor Inferencias:</strong> <code style="color:#7ee787;">llama-cpp-python</code>
+      </div>
+    </aside>
+
+    <!-- Main Content Streamlit -->
+    <main class="main-content">
+
+      <!-- Header Streamlit -->
+      <div class="streamlit-header">
+        <h1>
+          <span>🤖</span>
+          <span>Agente Conversacional con FastMCP & Qwen2.5 GGUF</span>
+        </h1>
+        <p class="streamlit-caption">
+          Arquitectura 100% Autónoma y Local: Streamlit (app.py) + FastMCP Server (server.py) + SQLite (generar_base.py)
+        </p>
+      </div>
+
+      <!-- Realtime Metrics -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="title">📦 TOTAL UNIDADES EN STOCK</div>
+          <div id="metric-stock" class="value">75 uds</div>
+          <div class="delta">Sincronizado con SQLite</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">💰 VALOR TOTAL ALMACÉN</div>
+          <div id="metric-value" class="value">34.819,00 €</div>
+          <div class="delta">8 Referencias activas</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">⚡ LATENCIA GGUF LOCAL</div>
+          <div class="value">21 ms/tok</div>
+          <div class="delta">Metal / CUDA FP16</div>
+        </div>
+        <div class="metric-card">
+          <div class="title">🛡️ PROTOCOLO TOOL CALLING</div>
+          <div class="value">FastMCP 0.4</div>
+          <div class="delta">Type-Safe Pydantic</div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('chat')">💬 Chat con Agente MCP</button>
+        <button class="tab-btn" onclick="switchTab('inventory')">📊 Inventario SQLite en Vivo</button>
+        <button class="tab-btn" onclick="switchTab('logs')">📜 Terminal FastMCP Logs</button>
+      </div>
+
+      <!-- TAB 1: CHAT -->
+      <section id="tab-content-chat">
+        
+        <!-- Quick Scenario Chips -->
+        <div class="scenarios-box">
+          <div class="scenarios-title">
+            <span>⚡ Escenarios Rápidos de Prueba (FastMCP Tools):</span>
+            <span style="font-size:11px; text-transform:none; font-weight:normal; color:#58a6ff;">Haz clic para ejecutar y ver llamadas MCP</span>
+          </div>
+          <div class="scenarios-btns">
+            <button class="quick-chip" onclick="triggerScenario('stock-query')">
+              🔍 <strong>Consultar Stock:</strong> Laptop Lenovo
+            </button>
+            <button class="quick-chip" onclick="triggerScenario('revenue-calc')">
+              💰 <strong>Analítica:</strong> Ingresos Totales & Ticket
+            </button>
+            <button class="quick-chip" onclick="triggerScenario('sale-simulation')">
+              🛒 <strong>Mutación:</strong> Simular Venta 2 Monitores
+            </button>
+            <button class="quick-chip" onclick="triggerScenario('low-stock-alert')">
+              ⚠️ <strong>Supervisión:</strong> Alerta Stock Crítico (≤ 5)
+            </button>
+          </div>
+        </div>
+
+        <!-- Messages Flow -->
+        <div id="chat-messages" class="chat-container">
+          <!-- Initial Assistant Message -->
+          <div class="chat-msg">
+            <div class="chat-avatar avatar-bot">🤖</div>
+            <div class="chat-bubble">
+              <strong style="color:var(--primary-color);">Agente MCP (Qwen2.5 GGUF):</strong><br>
+              ¡Hola! Soy tu asistente de inventario y ventas impulsado por el modelo local <strong>Qwen2.5</strong> y conectado vía <strong>FastMCP Protocol</strong> a la base de datos SQLite.<br>
+              Puedo consultar existencias en tiempo real, calcular métricas de facturación, registrar transacciones descontando inventario y emitir alertas de reposición. ¿Qué deseas consultar hoy?
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Input Form -->
+        <form id="chat-form" onsubmit="handleCustomSubmit(event)" class="input-box">
+          <input id="user-input" type="text" placeholder="Escribe una pregunta para el Agente (o selecciona un escenario rápido arriba)..." autocomplete="off">
+          <button type="submit" class="btn-send">Enviar</button>
+        </form>
+      </section>
+
+      <!-- TAB 2: INVENTORY -->
+      <section id="tab-content-inventory" style="display:none;">
+        <div class="table-container">
+          <div class="table-header">
+            <span>📦 Catálogo de Productos (Tabla: <code>productos</code>)</span>
+            <span style="font-size:11px; color:var(--text-muted);">Actualizado en vivo mediante transacciones SQLite</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Producto</th>
+                <th>Categoría</th>
+                <th>Precio (€)</th>
+                <th>Stock Actual</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-tbody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-container">
+          <div class="table-header">
+            <span>🧾 Registro de Ventas Recientes (Tabla: <code>ventas</code>)</span>
+            <span style="font-size:11px; color:var(--text-muted);">Relación Foreign Key con <code>productos.id</code></span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID Venta</th>
+                <th>Producto</th>
+                <th>Unidades</th>
+                <th>Precio Unit.</th>
+                <th>Total Facturado</th>
+                <th>Fecha y Hora</th>
+              </tr>
+            </thead>
+            <tbody id="sales-tbody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 3: LOGS -->
+      <section id="tab-content-logs" style="display:none;">
+        <div class="table-header" style="background:#161b22; border-radius:8px 8px 0 0; border:1px solid var(--border-color); border-bottom:none;">
+          <span>🖥️ Stdout / Stderr: Servidor FastMCP & llama.cpp Engine</span>
+          <button onclick="clearLogs()" style="background:transparent; border:1px solid var(--border-color); color:#8b949e; padding:2px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Limpiar</button>
+        </div>
+        <div id="terminal-logs" class="terminal-box">
+          <div class="log-line log-blue">[FastMCP Server] Initializing FastMCP server: "Inventario Server"</div>
+          <div class="log-line log-green">[FastMCP Server] Registered tool: 'consultar_stock' (description: Consulta existencia, categoría y precio)</div>
+          <div class="log-line log-green">[FastMCP Server] Registered tool: 'calcular_ingresos_totales' (description: Calcula total acumulado y ticket promedio)</div>
+          <div class="log-line log-green">[FastMCP Server] Registered tool: 'registrar_venta' (description: Inserta venta y actualiza stock transaccional)</div>
+          <div class="log-line log-green">[FastMCP Server] Registered tool: 'productos_bajo_stock' (description: Filtra artículos bajo umbral crítico)</div>
+          <div class="log-line log-blue">[SQLite 3.42] Connected to database: 'inventario.db' (Foreign Keys: ON, WAL mode)</div>
+          <div class="log-line log-yellow">[llama-cpp-python] Model loaded: Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf (n_ctx=4096, n_gpu_layers=33)</div>
+          <div class="log-line log-green">[Streamlit 1.38] Web UI active on http://localhost:8501</div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // Estado en memoria de la simulación
+    const INITIAL_PRODUCTS_DATA = [
+      { id: 1, nombre: 'Laptop Lenovo ThinkPad X1', categoria: 'Portátiles', precio: 1299.99, stock: 12 },
+      { id: 2, nombre: 'Monitor Dell UltraSharp 27" 4K', categoria: 'Monitores', precio: 459.50, stock: 8 },
+      { id: 3, nombre: 'Teclado Mecánico Keychron Q1 Pro', categoria: 'Periféricos', precio: 189.00, stock: 15 },
+      { id: 4, nombre: 'Ratón Logitech MX Master 3S', categoria: 'Periféricos', precio: 99.90, stock: 24 },
+      { id: 5, nombre: 'Auriculares Sony WH-1000XM5', categoria: 'Audio', precio: 349.00, stock: 4 },
+      { id: 6, nombre: 'Disco SSD Samsung 990 Pro 2TB', categoria: 'Almacenamiento', precio: 175.00, stock: 3 },
+      { id: 7, nombre: 'Silla Ergonómica Herman Miller Aeron', categoria: 'Mobiliario', precio: 1190.00, stock: 2 },
+      { id: 8, nombre: 'Webcam Elgato Facecam Pro 4K', categoria: 'Streaming', precio: 299.99, stock: 7 },
+    ];
+
+    const INITIAL_SALES_DATA = [
+      { id: 101, producto_nombre: 'Laptop Lenovo ThinkPad X1', cantidad: 2, precio_unitario: 1299.99, total: 2599.98, fecha: '2026-10-06 10:14:22' },
+      { id: 102, producto_nombre: 'Teclado Mecánico Keychron Q1 Pro', cantidad: 3, precio_unitario: 189.00, total: 567.00, fecha: '2026-10-06 14:32:05' },
+      { id: 103, producto_nombre: 'Monitor Dell UltraSharp 27" 4K', cantidad: 1, precio_unitario: 459.50, total: 459.50, fecha: '2026-10-07 09:15:40' },
+      { id: 104, producto_nombre: 'Ratón Logitech MX Master 3S', cantidad: 4, precio_unitario: 99.90, total: 399.60, fecha: '2026-10-07 16:45:11' },
+    ];
+
+    let products = JSON.parse(JSON.stringify(INITIAL_PRODUCTS_DATA));
+    let sales = JSON.parse(JSON.stringify(INITIAL_SALES_DATA));
+
+    const SCENARIOS = {
+      'stock-query': {
+        prompt: '¿Cuántas unidades nos quedan de la Laptop Lenovo ThinkPad X1 y cuál es su precio?',
+        tool: 'consultar_stock',
+        args: { producto: 'Laptop Lenovo ThinkPad X1' },
+        sql: "SELECT id, nombre, categoria, precio, stock FROM productos WHERE nombre LIKE '%Lenovo%' LIMIT 1;",
+        result: { encontrado: true, producto: 'Laptop Lenovo ThinkPad X1', stock_actual: 12, precio: 1299.99, estado: 'DISPONIBLE' },
+        response: 'Actualmente disponemos de **12 unidades** de la **Laptop Lenovo ThinkPad X1** en almacén. El precio de venta oficial es de **1.299,99 €**.'
+      },
+      'revenue-calc': {
+        prompt: 'Calcula los ingresos totales acumulados por todas las ventas y el ticket promedio.',
+        tool: 'calcular_ingresos_totales',
+        args: {},
+        sql: "SELECT COUNT(*) as num_ventas, SUM(total) as ingresos_totales, AVG(total) as ticket_promedio FROM ventas;",
+        result: { numero_transacciones: 4, ingresos_totales: 4026.08, ticket_promedio: 1006.52, moneda: 'EUR' },
+        response: 'Tras consultar la tabla de ventas:\n- **Ingresos Totales:** 4.026,08 €\n- **Transacciones Registradas:** 4 ventas\n- **Ticket Promedio:** 1.006,52 € por compra.'
+      },
+      'sale-simulation': {
+        prompt: 'Registra una venta de 2 Monitores Dell UltraSharp 4K para un cliente corporativo.',
+        tool: 'registrar_venta',
+        args: { producto_id: 2, cantidad: 2 },
+        sql: "BEGIN TRANSACTION; INSERT INTO ventas (producto_id, cantidad, precio_unitario, total, fecha) VALUES (2, 2, 459.50, 919.00, datetime('now')); UPDATE productos SET stock = stock - 2 WHERE id = 2; COMMIT;",
+        result: { exito: true, id_venta: 105, producto: 'Monitor Dell UltraSharp 27" 4K', unidades_vendidas: 2, total_operacion: 919.00, stock_restante: 6 },
+        response: '✅ **Venta procesada con éxito.**\n- Se facturaron 2 unidades de **Monitor Dell UltraSharp 27" 4K**.\n- Importe total: **919,00 €**.\n- El stock actualizado en la base de datos es de **6 unidades** restantes.',
+        mutate: () => {
+          const p = products.find(x => x.id === 2);
+          if (p && p.stock >= 2) {
+            p.stock -= 2;
+            sales.unshift({
+              id: sales.length + 101,
+              producto_nombre: p.nombre,
+              cantidad: 2,
+              precio_unitario: p.precio,
+              total: +(p.precio * 2).toFixed(2),
+              fecha: new Date().toISOString().replace('T', ' ').substring(0, 19)
+            });
+            updateMetricsAndTables();
+          }
+        }
+      },
+      'low-stock-alert': {
+        prompt: 'Muéstrame los productos que están en nivel crítico de inventario (menos de 5 unidades).',
+        tool: 'productos_bajo_stock',
+        args: { umbral: 5 },
+        sql: "SELECT id, nombre, categoria, stock, precio FROM productos WHERE stock <= 5 ORDER BY stock ASC;",
+        result: {
+          total_en_alerta: 3,
+          productos_criticos: [
+            { nombre: 'Silla Ergonómica Herman Miller Aeron', stock: 2 },
+            { nombre: 'Disco SSD Samsung 990 Pro 2TB', stock: 3 },
+            { nombre: 'Auriculares Sony WH-1000XM5', stock: 4 }
+          ]
+        },
+        response: '⚠️ **Alerta de Stock Crítico (≤ 5 unidades):**\n1. **Silla Ergonómica Herman Miller:** 2 unidades\n2. **Disco SSD Samsung 990 Pro:** 3 unidades\n3. **Auriculares Sony WH-1000XM5:** 4 unidades\n\nSe recomienda emitir orden de compra inmediata a proveedores.'
+      }
+    };
+
+    function updateMetricsAndTables() {
+      const totalStock = products.reduce((acc, p) => acc + p.stock, 0);
+      const totalVal = products.reduce((acc, p) => acc + (p.stock * p.precio), 0);
+
+      document.getElementById('metric-stock').innerText = totalStock + ' uds';
+      document.getElementById('metric-value').innerText = totalVal.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
+      // Tabla Productos
+      const tbodyProd = document.getElementById('inventory-tbody');
+      tbodyProd.innerHTML = products.map(p => {
+        let badgeClass = 'stock-ok';
+        let badgeText = 'Disponible';
+        if (p.stock <= 3) {
+          badgeClass = 'stock-alert';
+          badgeText = 'Crítico';
+        } else if (p.stock <= 6) {
+          badgeClass = 'stock-low';
+          badgeText = 'Bajo';
+        }
+        return `
+          <tr>
+            <td style="font-family:var(--font-mono); color:var(--text-muted);">#${p.id}</td>
+            <td style="font-weight:600;">${p.nombre}</td>
+            <td><span style="background:#21262d; padding:2px 8px; border-radius:4px; font-size:11px;">${p.categoria}</span></td>
+            <td style="font-family:var(--font-mono);">${p.precio.toFixed(2)} €</td>
+            <td style="font-family:var(--font-mono); font-weight:700;">${p.stock}</td>
+            <td><span class="badge-stock ${badgeClass}">${badgeText}</span></td>
+          </tr>
+        `;
+      }).join('');
+
+      // Tabla Ventas
+      const tbodySales = document.getElementById('sales-tbody');
+      tbodySales.innerHTML = sales.slice(0, 8).map(s => `
+        <tr>
+          <td style="font-family:var(--font-mono); color:var(--text-muted);">TX-${s.id}</td>
+          <td style="font-weight:600;">${s.producto_nombre}</td>
+          <td style="font-family:var(--font-mono);">${s.cantidad}</td>
+          <td style="font-family:var(--font-mono);">${s.precio_unitario.toFixed(2)} €</td>
+          <td style="font-family:var(--font-mono); color:#7ee787; font-weight:700;">${s.total.toFixed(2)} €</td>
+          <td style="font-size:12px; color:var(--text-muted);">${s.fecha}</td>
+        </tr>
+      `).join('');
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-content-chat').style.display = tab === 'chat' ? 'block' : 'none';
+      document.getElementById('tab-content-inventory').style.display = tab === 'inventory' ? 'block' : 'none';
+      document.getElementById('tab-content-logs').style.display = tab === 'logs' ? 'block' : 'none';
+
+      const buttons = document.querySelectorAll('.tab-bar .tab-btn');
+      if (tab === 'chat') buttons[0].classList.add('active');
+      if (tab === 'inventory') buttons[1].classList.add('active');
+      if (tab === 'logs') buttons[2].classList.add('active');
+    }
+
+    function addLog(text, colorClass = '') {
+      const logs = document.getElementById('terminal-logs');
+      const time = new Date().toTimeString().split(' ')[0];
+      const div = document.createElement('div');
+      div.className = 'log-line ' + colorClass;
+      div.innerText = `[${time}] ${text}`;
+      logs.appendChild(div);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('terminal-logs').innerHTML = '';
+      addLog('Logs limpiados por el usuario.', 'log-yellow');
+    }
+
+    function resetDemoData() {
+      products = JSON.parse(JSON.stringify(INITIAL_PRODUCTS_DATA));
+      sales = JSON.parse(JSON.stringify(INITIAL_SALES_DATA));
+      updateMetricsAndTables();
+      addLog('Base de datos reiniciada a valores iniciales de generar_base.py', 'log-yellow');
+    }
+
+    function triggerScenario(id) {
+      const scenario = SCENARIOS[id];
+      if (!scenario) return;
+
+      runAgentInteraction(scenario.prompt, scenario.tool, scenario.args, scenario.sql, scenario.result, scenario.response, scenario.mutate);
+    }
+
+    function handleCustomSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('user-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      // Resolver intención de forma inteligente
+      const lower = text.toLowerCase();
+      let matchedId = 'stock-query';
+      if (lower.includes('ingreso') || lower.includes('total') || lower.includes('ganancia') || lower.includes('venta')) {
+        matchedId = lower.includes('vender') || lower.includes('registrar') ? 'sale-simulation' : 'revenue-calc';
+      } else if (lower.includes('bajo') || lower.includes('critico') || lower.includes('alerta') || lower.includes('poco')) {
+        matchedId = 'low-stock-alert';
+      }
+
+      const s = SCENARIOS[matchedId];
+      runAgentInteraction(text, s.tool, s.args, s.sql, s.result, s.response, s.mutate);
+    }
+
+    function runAgentInteraction(promptText, toolName, toolArgs, sqlQuery, toolResult, responseText, mutateFn) {
+      const container = document.getElementById('chat-messages');
+
+      // 1. Mensaje del Usuario
+      const userMsgDiv = document.createElement('div');
+      userMsgDiv.className = 'chat-msg';
+      userMsgDiv.innerHTML = `
+        <div class="chat-avatar avatar-user">👤</div>
+        <div class="chat-bubble chat-bubble-user">
+          <strong>Usuario:</strong><br>
+          ${escapeHtml(promptText)}
+        </div>
+      `;
+      container.appendChild(userMsgDiv);
+
+      // 2. Indicador "Pensando..."
+      const botMsgDiv = document.createElement('div');
+      botMsgDiv.className = 'chat-msg';
+      botMsgDiv.innerHTML = `
+        <div class="chat-avatar avatar-bot">🤖</div>
+        <div class="chat-bubble" id="temp-bubble">
+          <span class="spinner"></span> <em>Qwen2.5 GGUF razonando y evaluando llamadas FastMCP...</em>
+        </div>
+      `;
+      container.appendChild(botMsgDiv);
+      container.scrollTop = container.scrollHeight;
+
+      addLog(`[Streamlit Client] User submitted prompt: "${promptText.substring(0, 45)}..."`, 'log-blue');
+      addLog(`[llama-cpp-python] Generating function calling tokens for FastMCP dispatcher...`, 'log-yellow');
+
+      setTimeout(() => {
+        // Log FastMCP Call
+        addLog(`[FastMCP Server] Invoking tool '${toolName}' with args: ${JSON.stringify(toolArgs)}`, 'log-green');
+        addLog(`[SQLite Engine] Executing: ${sqlQuery}`, 'log-blue');
+
+        if (mutateFn) {
+          mutateFn();
+        }
+
+        const bubble = botMsgDiv.querySelector('.chat-bubble');
+        const formattedResp = responseText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+
+        bubble.innerHTML = `
+          <strong style="color:var(--primary-color);">Agente MCP (Qwen2.5 GGUF):</strong>
+          
+          <div class="tool-box">
+            <div class="tool-header">
+              <span class="mcp-pill">FastMCP Tool Call</span>
+              <span style="font-family:var(--font-mono); font-size:11px; color:#58a6ff;">tool: ${toolName}()</span>
+            </div>
+            <div class="tool-code">Argumentos: ${JSON.stringify(toolArgs, null, 2)}</div>
+            <div class="sql-code">SQLite SQL: ${sqlQuery}</div>
+            <div class="tool-code" style="color:#7ee787;">Retorno MCP: ${JSON.stringify(toolResult, null, 2)}</div>
+          </div>
+
+          <div style="margin-top:10px;">
+            ${formattedResp}
+          </div>
+        `;
+
+        container.scrollTop = container.scrollHeight;
+        addLog(`[FastMCP Server] Tool '${toolName}' completed successfully. Returning context to LLM.`, 'log-green');
+      }, 700);
+    }
+
+    function escapeHtml(text) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // Inicializar tablas al cargar
+    updateMetricsAndTables();
+  </script>
+</body>
+</html>
