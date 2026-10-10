@@ -6,6 +6,8 @@
   <em>"Donde el cumplimiento regulatorio se encuentra con la eficiencia operativa: Un servidor de inspección en capas diseñado para que los modelos de lenguaje empresariales operen bajo un marco estricto, auditable, libre de fugas de privacidad y blindado contra alucinaciones factuales.."</em>
 </div>
 
+**Desarrollado por: Msc. Yanet Cesaire Velazquez**
+
 👉 **[Probar Aplicación de Gobernanza & Guardrails](https://86yanetc.github.io/gobernanza_guardrails/)**
 
 ## 📖 Glosario de Términos de Alta Ingeniería
@@ -16,6 +18,9 @@
 
 **HIPAA (Health Insurance Portability and Accountability Act):** Ley de Portabilidad y Responsabilidad del Seguro Médico de los Estados Unidos (promulgada en 1996).
 
+## 🏙️ Visión Arquitectónica
+
+El Framework **AegisForensic** no es un simple validador de texto; es una infraestructura de **Gobernanza y Ciberseguridad de Grado Industrial** diseñada para interceptar, evaluar y mitigar los riesgos inherentes al despliegue de Modelos de Lenguaje de Gran Escala (LLMs) en la empresa. Actúa como una capa perimetral (Proxy de Seguridad) que se interpone entre las peticiones de los usuarios y los motores de inferencia. El sistema resuelve de raíz las cuatro grandes fricciones del Gobierno de IA: **Fugas de Información Confidencial (PII), Inyecciones de Prompt Maliciosas, Cumplimiento Regulatorio (Compliance) y Trazabilidad Forense.**
 
 ## 💡 Preguntas Clave de Gobernanza y Mitigación de Riesgos
 
@@ -41,6 +46,23 @@ Una política de gobernanza moderna exige transparencia técnica inmutable. Cada
 
 ## ⚠️ Desafíos Reales de Gobernanza y Guardrails
 
+**1. El Conflicto de Intereses entre Cumplimiento y Negocio (Gobernanza de Entrada)**
+
+**El desafío real:** La directriz de gobernanza exige cumplir con leyes estrictas de privacidad (como GDPR). El camino fácil y "seguro" de un Oficial de Riesgos tradicional sería bloquear cualquier prompt que contenga un correo o un número para evitar multas legales. Pero si hacés eso, destruís el negocio porque el bot deja de ser útil para que los empleados atiendan clientes (ej: procesar un pago de Juan).
+
+**Solución de guardrail:** Resolviste esta fricción implementando un Filtro de Sanitización de Doble Vía. Se logró que el sistema cumpla con la ley (borrando el dato real de forma local en la CPU en 0.07 ms) pero manteniendo la continuidad del negocio al permitir que la transacción avance usando tokens sintéticos inofensivos. Encontraste el punto de equilibrio exacto entre cumplimiento legal estricto y usabilidad operativa.
+
+**2. El Desafío del Cortocircuito del Riesgo frente al Desperdicio Financiero (FinOps Governance)**
+
+**El desafío real:** El marco NIST AI RMF y el estándar OWASP exigen auditar exhaustivamente cada prompt contra inyecciones y taxonomías complejas. Sin embargo, evaluar secuencialmente un ataque masivo a través de múltiples LLMs en la nube genera una latencia inaceptable para el usuario y destruye el presupuesto de la empresa en tokens innecesarios (Denial of Wallet).
+
+**Solución de guardrail:** Se diseño una Estrategia de Mitigación en Cascada con Circuit Breakers Estadísticos. En lugar de evaluar todo al mismo tiempo, se calibró el orquestador para que actúe como un tribunal de apelaciones: si el clasificador rápido de la Capa 1 (Prompt Guard 2) detecta un Jailbreak que supera el umbral probabilístico de 0.60, se activa un cortocircuito inmediato. Se aborta el resto del pipeline en milisegundos, garantizando la seguridad del clúster mientras registrás un 95% de ahorro financiero. Se gobernó el riesgo de seguridad gobernando el riesgo financiero.
+
+**3. La Paradoja de la Confianza y la Auditoría de Salida (Overreliance)**
+
+**El desafío real:** El riesgo más complejo de gobernanza actual según OWASP (LLM09) es el "exceso de confianza" (Overreliance). Las empresas implementan sistemas RAG asumiendo que el bot siempre dirá la verdad porque tiene acceso a los PDFs corporativos, pero los modelos de lenguaje tienden a alucinar de forma nativa. ¿Cómo gobernar la veracidad de un sistema sin poner a un humano a leer cada respuesta en tiempo real?
+
+**Solución de guardrail:** Se implemento un Auditor Factual Pos-Generativo Automatizado. Se diseñó un mecanismo de control de calidad que no confía en el modelo central. Forzás a una capa secundaria (Llama Instruct / Granite) a aplicar una técnica de razonamiento neutro (Chain-of-Thought) que contrasta de forma matemática la salida contra las premisas lógicas del documento de origen. Si la fidelidad cae por debajo del umbral de cumplimiento, el Circuit Breaker final veta la entrega. Garantizaste una traza de auditoría inmutable que certifica que el sistema es una fuente de verdad regulada
 
 
 
