@@ -39,3 +39,81 @@ Existe el riesgo crítico de la Sobreconfianza automatizada (Overreliance, OWASP
 
 Una política de gobernanza moderna exige transparencia técnica inmutable. Cada transacción procesada por AegisForensic LLM Guardrails genera una bitácora estructurada que asocia la estampa de tiempo (Timestamp), el veredicto del orquestador y los Commit SHAs exactos de los pesos binarios de Hugging Face utilizados en la moderación. Estos logs se clasifican automáticamente bajo las etiquetas oficiales de riesgo del Top 10 de OWASP. Esto expone una traza forense transparente y verificable que demuestra ante reguladores estatales o auditores externos que la Inteligencia Artificial de la compañía opera bajo control estricto y conforme a los estándares internacionales.
 
+## ⚠️ Desafíos Reales de Gobernanza y Guardrails
+
+
+
+
+
+```mermaid
+graph TD
+    %% Estilos de Nodos Industriales
+    classDef entrada fill:#f8f9fa,stroke:#3c4043,stroke-width:2px,color:#3c4043;
+    classDef fase fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#e65100;
+    classDef motor fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
+    classDef breaker fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#b71c1c;
+
+    %% Nivel de Entrada
+    IN[✉️ Prompt Crudo del Empleado o Cliente]:::entrada
+    
+    subgraph Perimetro_Filtros [🛡️ Ecosistema Perimetral de Guardrails]
+        
+        %% FASE 0
+        F0["⚙️ FASE 0: Filtro PII Local Sintáctico (CPU)"]:::fase
+        F0_1["• Destrucción local de datos privados en 0.07 ms<br>• Suavizado semántico en minúsculas<br>• Cumplimiento Nativo GDPR / HIPAA"]
+        
+        %% FASE 1
+        F1["🤖 FASE 1: Llama Prompt Guard 2 (22M)"]:::fase
+        F1_1["• Filtro probabilístico de Jailbreaks / DAN<br>• OWASP LLM01: Mitigación de Prompt Injection"]
+        B1["⚠️ CIRCUIT BREAKER 1:<br>Aborta la petición al superar umbral de riesgo (0.60)"]:::breaker
+        
+        %% FASE 2
+        F2["🛡️ FASE 2: Llama Guard 3 8B (Input Moderation)"]:::fase
+        F2_1["• Taxonomía temática de seguridad MLCommons (S1-S14)<br>• Parser robusto inmune a variaciones de formato"]
+        B2["⚠️ CIRCUIT BREAKER 2:<br>Mitiga exploits de malware / ciberdelitos"]:::breaker
+    end
+
+    %% Capa Central de Procesamiento
+    subgraph Engine_Cognitivo [🧠 Procesamiento Central]
+        LLM_GEN[LLM Generativo Central]:::motor
+        LLM_PROC[Procesamiento y Generación de Respuesta]:::motor
+    end
+
+    %% Capa Post-Inferencia (Salida)
+    subgraph Validacion_Salida [🔍 Capa de Auditoría Forense]
+        F3["👁️ FASE 3: Auditor RAG de Salida (Llama Instruct)"]:::fase
+        F3_1["• Validación factual cruzada Chain-of-Thought<br>• Contraste lógico de la respuesta contra el PDF<br>• OWASP LLM09: Mitigación de Overreliance"]
+        B3["⚠️ CIRCUIT BREAKER 3:<br>Veto inmediato de alucinaciones"]:::breaker
+    end
+
+    %% Entrega Final
+    OUT[📜 Respuesta Conforme y Certificada]:::entrada
+
+    %% Conectividad y Flujo del Pipeline Secuencial
+    IN --> F0
+    F0 --- F0_1
+    F0 --> F1
+    F1 --- F1_1
+    F1 -->|Evaluación de Riesgo > 0.60| B1
+    F1 -->|Filtro Exitoso| F2
+    F2 --- F2_1
+    F2 -->|Detección de Malware| B2
+    F2 -->|Payload Seguro| LLM_GEN
+    
+    %% Flujo Central y Auditoría de Salida
+    LLM_GEN --> LLM_PROC
+    LLM_PROC --> F3
+    F3 --- F3_1
+    F3 -->|Detección de Alucinación| B3
+    F3 -->|Validación Exitosa| OUT
+
+    %% Enlaces de Cierre de los Circuit Breakers
+    B1 & B2 & B3 -->|Interrupción del Proceso| OUT
+
+    %% Clases
+    class IN,OUT entrada;
+    class F0,F1,F2,F3 fase;
+    class LLM_GEN,LLM_PROC motor;
+    class B1,B2,B3 breaker;
+```
+
