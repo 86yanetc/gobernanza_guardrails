@@ -65,7 +65,7 @@ Una política de gobernanza moderna exige transparencia técnica inmutable. Cada
 **Solución de guardrail:** Se implemento un Auditor Factual Pos-Generativo Automatizado. Se diseñó un mecanismo de control de calidad que no confía en el modelo central. Forzás a una capa secundaria (Llama Instruct / Granite) a aplicar una técnica de razonamiento neutro (Chain-of-Thought) que contrasta de forma matemática la salida contra las premisas lógicas del documento de origen. Si la fidelidad cae por debajo del umbral de cumplimiento, el Circuit Breaker final veta la entrega. Garantizaste una traza de auditoría inmutable que certifica que el sistema es una fuente de verdad regulada
 
 
-
+📐 Arquitectura del Sistema
 
 ```mermaid
 graph TD
@@ -138,4 +138,49 @@ graph TD
     class LLM_GEN,LLM_PROC motor;
     class B1,B2,B3 breaker;
 ```
+
+## 🧱 Desglose Técnico del Pipeline de Gobernanza y Guardrails
+
+El framework opera como un pipeline de inspección secuencial y multicapa (Defense-in-Depth). Cada fase aísla responsabilidades específicas antes de permitir que el flujo de datos impacte en el modelo generativo central o sea entregado al usuario final.
+
+### 🔒 Capa Perimetral de Entrada (Ingress Guardrails)
+
+#### 🔹 FASE 0: Filtro PII Local Sintáctico (CPU)
+Constituye la primera línea de defensa perimetral, optimizada para ejecutarse en microsegundos de forma local directamente en la CPU.
+
+- **Mecanismo Operativo:** Destrucción local y anonimización de datos privados (PII) en un tiempo récord de **0.07 ms** mediante motores sintácticos estructurados. Aplica un suavizado semántico transformando el texto a minúsculas para estandarizar el payload.
+
+- **Cumplimiento Normativo (Compliance):** Garantiza de forma nativa el aislamiento físico de la información bajo los estándares **GDPR** y **HIPAA**, evitando que datos confidenciales viajen a la ventana de contexto del LLM central.
+
+#### 🔹 FASE 1: Llama Prompt Guard 2 (22M)
+Capa de clasificación probabilística especializada y de ultra-baja latencia gracias al tamaño compacto del modelo (22 millones de parámetros).
+
+- **Mecanismo Operativo:** Evalúa el prompt del usuario mediante análisis de riesgo estadístico para interceptar ataques vectoriales de **Jailbreaks** y exploits de ingeniería social basados en variaciones de **DAN** (Do Anything Now).
+
+- **Mitigación OWASP:** Bloqueo en tiempo real de vulnerabilidades del pilar **OWASP LLM01 (Prompt Injection)**.
+
+- **⚠️ CIRCUIT BREAKER 1 (Abandono Temprano):** Actúa como un disyuntor de seguridad automático. Si el modelo Prompt Guard determina que la petición supera el **umbral estricto de 0.60 de riesgo**, la solicitud se aborta de inmediato, interrumpiendo el flujo hacia el LLM central y redirigiendo al usuario a una respuesta segura predefinida.
+
+#### 🔹 FASE 2: Llama Guard 3 8B (Input Moderation)
+Capa de auditoría semántica profunda ejecutada antes de la inferencia central para evaluar el contexto completo del prompt.
+
+- **Mecanismo Operativo:** Implementa de forma nativa la **Taxonomía temática de seguridad MLCommons (categorías S1 a S14)**, clasificando el texto para detectar contenido dañino, incitaciones al odio o violaciones éticas corporativas. Cuenta con un parser robusto inmune a variaciones de formato o bypass tipográficos.
+
+- **⚠️ CIRCUIT BREAKER 2 (Defensa contra Ciberdelitos):** Intercepta e interrumpe de forma inmediata exploits avanzados que intenten usar el LLM para generar código malicioso, vectores de phishing o planes de ciberdelitos.
+
+### 🧠 Capa de Procesamiento Central (Cognitive Core)
+
+#### 🔹 LLM Generativo Central
+Una vez que el prompt cruzó con éxito las tres capas defensivas anteriores del perímetro de entrada, el payload limpio es inyectado de forma segura en la ventana de contexto del modelo principal. El motor realiza el procesamiento lógico y genera la respuesta cruda basada exclusivamente en los datos validados.
+
+### 👁️ Capa Post-Inferencia de Salida (Egress Guardrails)
+
+#### 🔹 FASE 3: Auditor RAG de Salida (Llama Instruct)
+Constituye la última compuerta de seguridad antes de que la respuesta sea entregada al cliente o empleado, auditando la salida del modelo central.
+
+- **Mecanismo Operativo:** Aplica técnicas de **Validación factual cruzada mediante Chain-of-Thought (Cadena de Pensamiento)**, obligando al auditor a razonar paso a paso la veracidad de la respuesta. Ejecuta un contraste lógico estricto de los datos generados contra la fuente de verdad original (el documento PDF indexado en el sistema RAG).
+
+- **Mitigación OWASP:** Blindaje activo contra fallos del pilar **OWASP LLM09 (Overreliance / Confianza Excesiva)**, asegurando que el sistema no entregue datos incorrectos o engañosos.
+
+- **⚠️ CIRCUIT BREAKER 3 (Veto de Alucinaciones):** Si el auditor de salida detecta discrepancias lógicas o invenciones de datos entre la respuesta generada y la fuente documental, activa un **veto inmediato por alucinación**, interrumpiendo la entrega y emitiendo una respuesta certificada y conforme a las políticas de la organización.
 
